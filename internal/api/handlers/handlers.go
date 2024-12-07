@@ -30,18 +30,18 @@ func NewHandler(log *zap.Logger, serv service.Servicer) Handler {
 }
 
 // AddSong adds a new song to the database
-// @Summary Add a new song
-// @Description Add a new song by providing its details. It also fetches additional info from an external API
-// @Tags Songs
-// @Accept json
-// @Produce json
-// @Param song body models.Song "Song details"
-// @Success 200 {object} map[string]string "Song added successfully"
-// @Failure 400 {object} map[string]string "Invalid input"
-// @Failure 500 {object} map[string]string "Failed add song"
-// @Router /songs [post]
+//
+//	@Summary		Add a new song
+//	@Description	Add a new song by providing its details. It also fetches additional info from an external API
+//	@Tags			Songs
+//	@Accept			json
+//	@Produce		json
+//	@Param			song	body		models.Song	true		"Song details"
+//	@Success		200		{object}	map[string]string	"Song added successfully"
+//	@Failure		400		{object}	map[string]string	"Invalid input"
+//	@Failure		500		{object}	map[string]string	"Failed add song"
+//	@Router			/songs [post]
 func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
-
 	h.Log.Debug("Incoming request to AddSong endpoint")
 
 	var song models.Song
@@ -94,24 +94,24 @@ func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAll returns a list of Song's
-// @Summary Get all songs
-// @Description Retrieve a list of songs with optional filters
-// @Tags Songs
-// @Accept json
-// @Produce json
-// @Param song query string false "Filter by song name (partial match)"
-// @Param group query string false "Filter by group name (partial match)"
-// @Param text query string false "Filter by lyrics (partial match)"
-// @Param link query string false "Filter by link (partial match)"
-// @Param date_release query string false "Filter by release date (format: YYYY-MM-DD)"
-// @Param limit query integer false "Limit the number of results"
-// @Param offset query integer false "Offset for pagination"
-// @Success 200 {array} models.Song "List of songs"
-// @Failure 400 {object} Response "Invalid filters provided"
-// @Failure 500 {object} Response "Internal server error"
-// @Router /songs [get]
+//
+//	@Summary		Get all songs
+//	@Description	Retrieve a list of songs with optional filters
+//	@Tags			Songs
+//	@Accept			json
+//	@Produce		json
+//	@Param			song			query		string		false	"Filter by song name (partial match)"
+//	@Param			group			query		string		false	"Filter by group name (partial match)"
+//	@Param			text			query		string		false	"Filter by lyrics (partial match)"
+//	@Param			link			query		string		false	"Filter by link (partial match)"
+//	@Param			date_release	query		string		false	"Filter by release date (format: YYYY-MM-DD)"
+//	@Param			limit			query		integer		false	"Limit the number of results"
+//	@Param			offset			query		integer		false	"Offset for pagination"
+//	@Success		200				{array}		models.Song	"List of songs"
+//	@Failure		400				{object}	map[string]string	"Invalid filters provided"
+//	@Failure		500				{object}	map[string]string	"Internal server error"
+//	@Router			/songs [get]
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-
 	h.Log.Debug("Incoming request to GetAll endpoint")
 
 	filtres, err := ValidFiltres(r)
@@ -195,19 +195,19 @@ func ValidID(r *http.Request) (int, error) {
 }
 
 // Update updates an existing song
-// @Summary Update a song
-// @Description Update details of an existing song by its ID.
-// @Tags Songs
-// @Accept json
-// @Produce json
-// @Param id path int true "Song ID"
-// @Param song body models.Song true "Updated song details"
-// @Success 200 {object} map[string]string "Song updated successfully"
-// @Failure 400 {object} map[string]string "Invalid request body or ID"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /songs/{id} [put]
+//
+//	@Summary		Update a song
+//	@Description	Update details of an existing song by its ID.
+//	@Tags			Songs
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		int					true	"Song ID"
+//	@Param			song	body		models.Song			true	"Updated song details"
+//	@Success		200		{object}	map[string]string	"Song updated successfully"
+//	@Failure		400		{object}	map[string]string	"Invalid request body or ID"
+//	@Failure		500		{object}	map[string]string	"Internal server error"
+//	@Router			/songs/{id} [put]
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-
 	h.Log.Debug("Incoming request to Update endpoint")
 
 	var song models.Song
@@ -250,16 +250,16 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete deletes a song from the database by its ID
-// @Summary Delete a song
-// @Description Delete an existing song by its ID
-// @Tags Songs
-// @Param id path int true "Song ID"
-// @Success 200 {object} map[string]string "Song deleted successfully"
-// @Failure 400 {object} map[string]string "Invalid song ID"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /songs/{id} [delete]
+//
+//	@Summary		Delete a song
+//	@Description	Delete an existing song by its ID
+//	@Tags			Songs
+//	@Param			id	path		int					true	"Song ID"
+//	@Success		200	{object}	map[string]string	"Song deleted successfully"
+//	@Failure		400	{object}	map[string]string	"Invalid song ID"
+//	@Failure		500	{object}	map[string]string	"Internal server error"
+//	@Router			/songs/{id} [delete]
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-
 	h.Log.Debug("Incoming request to Delete endpoint")
 
 	// val := chi.URLParam(r, "id")
@@ -294,18 +294,18 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetText возвращает текст песни по её ID и фильтрам.
-// @Summary Get song text
-// @Description Retrieve the text of a song based on filters and its ID.
-// @Tags Songs
-// @Param id path int true "Song ID"
-// @Param group query string false "Filter by group"
-// @Param song query string false "Filter by song"
-// @Success 200 {object} map[string]string "Song text retrieved successfully"
-// @Failure 400 {object} map[string]string "Invalid input"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /songs/{id}/text [get]
+//
+//	@Summary		Get song text
+//	@Description	Retrieve the text of a song based on filters and its ID
+//	@Tags			Songs
+//	@Param			id		path		int					true	"Song ID"
+//	@Param			group	query		string				false	"Filter by group"
+//	@Param			song	query		string				false	"Filter by song"
+//	@Success		200		{object}	map[string]string	"Song text retrieved successfully"
+//	@Failure		400		{object}	map[string]string	"Invalid input"
+//	@Failure		500		{object}	map[string]string	"Internal server error"
+//	@Router			/songs/{id} [get]
 func (h *Handler) GetText(w http.ResponseWriter, r *http.Request) {
-
 	h.Log.Debug("Incoming request to GetText endpoint")
 
 	filters, err := ValidFiltres(r)

@@ -1,9 +1,228 @@
 basePath: /
+definitions:
+  models.Song:
+    properties:
+      date:
+        type: string
+      group:
+        type: string
+      id:
+        type: integer
+      link:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+    type: object
 info:
   contact:
     url: https://github.com/SemenShakhray
   description: API for managing a song library
   title: Songs Library API
   version: 1.0.0
-paths: {}
+paths:
+  /songs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of songs with optional filters
+      parameters:
+      - description: Filter by song name (partial match)
+        in: query
+        name: song
+        type: string
+      - description: Filter by group name (partial match)
+        in: query
+        name: group
+        type: string
+      - description: Filter by lyrics (partial match)
+        in: query
+        name: text
+        type: string
+      - description: Filter by link (partial match)
+        in: query
+        name: link
+        type: string
+      - description: 'Filter by release date (format: YYYY-MM-DD)'
+        in: query
+        name: date_release
+        type: string
+      - description: Limit the number of results
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of songs
+          schema:
+            items:
+              $ref: '#/definitions/models.Song'
+            type: array
+        "400":
+          description: Invalid filters provided
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all songs
+      tags:
+      - Songs
+    post:
+      consumes:
+      - application/json
+      description: Add a new song by providing its details. It also fetches additional
+        info from an external API
+      parameters:
+      - description: Song details
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/models.Song'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song added successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed add song
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add a new song
+      tags:
+      - Songs
+  /songs/{id}:
+    delete:
+      description: Delete an existing song by its ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Song deleted successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid song ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a song
+      tags:
+      - Songs
+    get:
+      description: Retrieve the text of a song based on filters and its ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Filter by group
+        in: query
+        name: group
+        type: string
+      - description: Filter by song
+        in: query
+        name: song
+        type: string
+      responses:
+        "200":
+          description: Song text retrieved successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get song text
+      tags:
+      - Songs
+    put:
+      consumes:
+      - application/json
+      description: Update details of an existing song by its ID.
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated song details
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/models.Song'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song updated successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body or ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a song
+      tags:
+      - Songs
 swagger: "2.0"

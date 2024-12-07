@@ -15,3 +15,6 @@ migration-up:
 
 migration-down:
 	goose -dir ${MIGRATION_DIR} postgres ${MIGRATION_DSN} down -v
+
+create-swagger:
+	swag init -g cmd/main.go

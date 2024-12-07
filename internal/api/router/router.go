@@ -22,7 +22,7 @@ func NewRouter(h *handlers.Handler) *chi.Mux {
 	r.Post("/songs", http.HandlerFunc(h.AddSong))
 	r.Delete("/songs/{id}", http.HandlerFunc(h.Delete))
 
-	r.Get("/swagger", httpSwagger.WrapHandler)
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	return r
 }

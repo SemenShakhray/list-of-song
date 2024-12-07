@@ -8,11 +8,11 @@ import (
 	"github.com/SemenShakhray/list-of-song/internal/app"
 )
 
-// @title Songs Library API
-// @version 1.0.0
-// @description API for managing a song library
-// @contact.url https://github.com/SemenShakhray
-// @BasePath /
+// @title			Songs Library API
+// @version		1.0.0
+// @description	API for managing a song library
+// @contact.url	https://github.com/SemenShakhray
+// @BasePath		/
 func main() {
 	app, err := app.NewApp()
 	if err != nil {
