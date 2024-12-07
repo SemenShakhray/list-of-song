@@ -3,12 +3,15 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
-	"listsongs/internal/models"
-	"listsongs/internal/service"
+	"github.com/SemenShakhray/list-of-song/internal/config"
+	"github.com/SemenShakhray/list-of-song/internal/models"
+	"github.com/SemenShakhray/list-of-song/internal/service"
 
 	"go.uber.org/zap"
 )
@@ -16,6 +19,7 @@ import (
 type Handler struct {
 	Log     *zap.Logger
 	Service service.Servicer
+	Cfg     config.Config
 }
 
 func NewHandler(log *zap.Logger, serv service.Servicer) Handler {
@@ -24,27 +28,59 @@ func NewHandler(log *zap.Logger, serv service.Servicer) Handler {
 		Service: serv,
 	}
 }
+
+// AddSong adds a new song to the database
+// @Summary Add a new song
+// @Description Add a new song by providing its details. It also fetches additional info from an external API
+// @Tags Songs
+// @Accept json
+// @Produce json
+// @Param song body models.Song "Song details"
+// @Success 200 {object} map[string]string "Song added successfully"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 500 {object} map[string]string "Failed add song"
+// @Router /songs [post]
 func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
 
-	var song models.Song
+	h.Log.Debug("Incoming request to AddSong endpoint")
 
+	var song models.Song
 	err := json.NewDecoder(r.Body).Decode(&song)
 	if err != nil {
 		h.Log.Debug("Failed to decode request body", zap.Error(err))
 		http.Error(w, `{"error":"failed to decode request"}`, http.StatusBadRequest)
 		return
 	}
-
 	h.Log.Debug("Song data", zap.String("song", song.Song), zap.String("group", song.Group))
+
+	h.Log.Debug("calling an external API")
+	if h.Cfg.API.Call {
+		hostPort := net.JoinHostPort(h.Cfg.API.Host, h.Cfg.API.Port)
+		apiURL := fmt.Sprintf("http://%s/info?group=%s&song=%s", hostPort, url.QueryEscape(song.Group), url.QueryEscape(song.Song))
+
+		resp, err := http.Get(apiURL)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			h.Log.Debug("Failed to fetch song details from external API", zap.Error(err))
+			http.Error(w, `{"error":"failed to fetch song details from external API"}`, http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		if err := json.NewDecoder(resp.Body).Decode(&song); err != nil {
+			h.Log.Debug("Failed to decode API response", zap.Error(err))
+			http.Error(w, `{"error":"failed to decode API response"}`, http.StatusInternalServerError)
+			return
+		}
+	}
 
 	err = h.Service.AddSong(r.Context(), song)
 	if err != nil {
 		h.Log.Debug("service AddSong", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	h.Log.Debug("Song added successfully", zap.String("song", song.Song), zap.String("group", song.Group))
+	h.Log.Debug("Song added successfully", zap.Any("song", song))
 
 	res := map[string]string{"message": "song added successfully"}
 	w.WriteHeader(http.StatusOK)
@@ -53,10 +89,27 @@ func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		h.Log.Debug("Failed to encode response", zap.Error(err))
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 	}
 }
 
+// GetAll returns a list of Song's
+// @Summary Get all songs
+// @Description Retrieve a list of songs with optional filters
+// @Tags Songs
+// @Accept json
+// @Produce json
+// @Param song query string false "Filter by song name (partial match)"
+// @Param group query string false "Filter by group name (partial match)"
+// @Param text query string false "Filter by lyrics (partial match)"
+// @Param link query string false "Filter by link (partial match)"
+// @Param date_release query string false "Filter by release date (format: YYYY-MM-DD)"
+// @Param limit query integer false "Limit the number of results"
+// @Param offset query integer false "Offset for pagination"
+// @Success 200 {array} models.Song "List of songs"
+// @Failure 400 {object} Response "Invalid filters provided"
+// @Failure 500 {object} Response "Internal server error"
+// @Router /songs [get]
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	h.Log.Debug("Incoming request to GetAll endpoint")
@@ -64,7 +117,7 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	filtres, err := ValidFiltres(r)
 	if err != nil {
 		h.Log.Debug("Failed to validate filters", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
 	h.Log.Debug("Filters validated successfully", zap.Any("filters", filtres))
@@ -72,22 +125,18 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	songs, err := h.Service.GetAll(r.Context(), filtres)
 	if err != nil {
 		h.Log.Debug("service GetAll", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	// for _, item := range songs {
-	// res := fmt.Sprintf("song: %s\ngroup: %s\ntext: %s\nlink: %s\ndata_release: %s\n", item.Song, item.Group, item.Text, item.Link, item.Date)
-	// w.Write([]byte(res))
 	err = json.NewEncoder(w).Encode(songs)
 	if err != nil {
 		h.Log.Debug("Failed to encode response", zap.Error(err))
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 		return
 	}
-	// }
 
 	h.Log.Debug("Response sent successfully")
 }
@@ -145,6 +194,18 @@ func ValidID(r *http.Request) (int, error) {
 	return id, nil
 }
 
+// Update updates an existing song
+// @Summary Update a song
+// @Description Update details of an existing song by its ID.
+// @Tags Songs
+// @Accept json
+// @Produce json
+// @Param id path int true "Song ID"
+// @Param song body models.Song true "Updated song details"
+// @Success 200 {object} map[string]string "Song updated successfully"
+// @Failure 400 {object} map[string]string "Invalid request body or ID"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /songs/{id} [put]
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	h.Log.Debug("Incoming request to Update endpoint")
@@ -161,16 +222,16 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := ValidID(r)
 	if err != nil {
 		h.Log.Debug("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
-
 	h.Log.Debug("Request body decoded successfully", zap.Any("song", song))
 
-	err = h.Service.Update(r.Context(), song, id)
+	song.Id = id
+	err = h.Service.Update(r.Context(), song)
 	if err != nil {
 		h.Log.Debug("service Update", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -181,13 +242,22 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		h.Log.Debug("Failed to encode response", zap.Error(err))
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 		return
 	}
 
 	h.Log.Debug("Response sent successfully")
 }
 
+// Delete deletes a song from the database by its ID
+// @Summary Delete a song
+// @Description Delete an existing song by its ID
+// @Tags Songs
+// @Param id path int true "Song ID"
+// @Success 200 {object} map[string]string "Song deleted successfully"
+// @Failure 400 {object} map[string]string "Invalid song ID"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /songs/{id} [delete]
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	h.Log.Debug("Incoming request to Delete endpoint")
@@ -196,7 +266,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := ValidID(r)
 	if err != nil {
 		h.Log.Debug("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -205,7 +275,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	err = h.Service.Delete(r.Context(), id)
 	if err != nil {
 		h.Log.Debug("service Delete", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -216,13 +286,24 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		h.Log.Debug("Failed to encode response", zap.Error(err))
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	h.Log.Debug("Response sent successfully")
 }
 
+// GetText возвращает текст песни по её ID и фильтрам.
+// @Summary Get song text
+// @Description Retrieve the text of a song based on filters and its ID.
+// @Tags Songs
+// @Param id path int true "Song ID"
+// @Param group query string false "Filter by group"
+// @Param song query string false "Filter by song"
+// @Success 200 {object} map[string]string "Song text retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /songs/{id}/text [get]
 func (h *Handler) GetText(w http.ResponseWriter, r *http.Request) {
 
 	h.Log.Debug("Incoming request to GetText endpoint")
@@ -230,21 +311,21 @@ func (h *Handler) GetText(w http.ResponseWriter, r *http.Request) {
 	filters, err := ValidFiltres(r)
 	if err != nil {
 		h.Log.Debug("Failed to validate filters", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	id, err := ValidID(r)
 	if err != nil {
 		h.Log.Debug("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	text, err := h.Service.GetText(r.Context(), filters, id)
 	if err != nil {
 		h.Log.Debug("service GetText", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 	}
 
 	response := map[string]string{"text": text}
@@ -253,7 +334,7 @@ func (h *Handler) GetText(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		h.Log.Debug("Failed to encode response", zap.Error(err))
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 		return
 	}
 

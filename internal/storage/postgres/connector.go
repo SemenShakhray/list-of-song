@@ -3,8 +3,9 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"listsongs/internal/config"
-	"listsongs/internal/storage"
+
+	"github.com/SemenShakhray/list-of-song/internal/config"
+	"github.com/SemenShakhray/list-of-song/internal/storage"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"

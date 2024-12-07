@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/goloop/env"
@@ -23,6 +24,7 @@ type DB struct {
 }
 
 type API struct {
+	Call bool
 	Host string
 	Port string
 }
@@ -58,6 +60,10 @@ func Load() Config {
 		},
 	}
 
+	callApi, err := strconv.ParseBool(env.Get("API_CALL"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	timeout, err := time.ParseDuration(os.Getenv("SERVER_TIMEOUT"))
 	if err != nil {
 		log.Fatal(err)
@@ -67,6 +73,8 @@ func Load() Config {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	cfg.API.Call = callApi
 	cfg.Server.Timeout = timeout
 	cfg.Server.IdleTimeout = idleTimeout
 

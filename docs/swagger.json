@@ -1,0 +1,13 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API for managing a song library",
+        "title": "Songs Library API",
+        "contact": {
+            "url": "https://github.com/SemenShakhray"
+        },
+        "version": "1.0.0"
+    },
+    "basePath": "/",
+    "paths": {}
+}

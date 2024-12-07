@@ -1,0 +1,9 @@
+basePath: /
+info:
+  contact:
+    url: https://github.com/SemenShakhray
+  description: API for managing a song library
+  title: Songs Library API
+  version: 1.0.0
+paths: {}
+swagger: "2.0"

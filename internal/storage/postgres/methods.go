@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"listsongs/internal/models"
+	"github.com/SemenShakhray/list-of-song/internal/models"
 
 	"go.uber.org/zap"
 )
@@ -41,10 +41,10 @@ func (s *Store) AddSong(ctx context.Context, song models.Song) error {
 
 }
 
-func (s *Store) Update(ctx context.Context, song models.Song, id int) error {
+func (s *Store) Update(ctx context.Context, song models.Song) error {
 
 	s.Log.Debug("Updating info about song",
-		zap.Int("song", id),
+		zap.Int("song", song.Id),
 	)
 
 	query := `UPDATE songs SET 
@@ -53,7 +53,7 @@ func (s *Store) Update(ctx context.Context, song models.Song, id int) error {
     date_release = COALESCE(NULLIF($3, ''), date_release)
 	WHERE id = $4`
 
-	row, err := s.DB.ExecContext(ctx, query, song.Text, song.Link, song.Date, id)
+	row, err := s.DB.ExecContext(ctx, query, song.Text, song.Link, song.Date, song.Id)
 	if err != nil {
 		return fmt.Errorf("failed to update info about song: %w", err)
 	}
@@ -63,7 +63,7 @@ func (s *Store) Update(ctx context.Context, song models.Song, id int) error {
 	}
 	if n == 0 {
 		s.Log.Debug("No changes made to the song info", zap.Any("song", song))
-		return fmt.Errorf("no changes made to the song info")
+		return fmt.Errorf("song not found")
 	} else {
 		s.Log.Debug("Song info successfully updated")
 	}
