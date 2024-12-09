@@ -60,11 +60,9 @@ func NewApp() (*App, error) {
 		return nil, fmt.Errorf("failed to create DB")
 	}
 
-	goose.SetBaseFS(os.DirFS("./migrations"))
-	goose.SetDialect("postgres")
-	err = goose.Up(db, ".")
+	err = goose.Create(db, cfg.Migration.Dir, "songs", "sql")
 	if err != nil {
-		return nil, fmt.Errorf("failed up migration: %w", err)
+		return nil, fmt.Errorf("failed create migration: %w", err)
 	}
 	log.Info("Connected to database and applied migrations", zap.String("config", cfg.DB.User))
 

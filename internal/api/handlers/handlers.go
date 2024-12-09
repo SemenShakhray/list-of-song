@@ -170,6 +170,7 @@ func ValidFiltres(r *http.Request) (models.Filters, error) {
 		if offset < 0 {
 			return models.Filters{}, fmt.Errorf("invalid offset: negative")
 		}
+		filters.Offset = offset
 	}
 
 	filters.Song = r.FormValue("song")

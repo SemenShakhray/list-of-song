@@ -10,9 +10,10 @@ import (
 )
 
 type Config struct {
-	DB     DB
-	API    API
-	Server Server
+	DB        DB
+	API       API
+	Server    Server
+	Migration Migration
 }
 
 type DB struct {
@@ -36,6 +37,12 @@ type Server struct {
 	IdleTimeout time.Duration
 }
 
+type Migration struct {
+	Dir  string
+	DSN  string
+	Name string
+}
+
 func Load() Config {
 	cfg := Config{}
 	err := env.Load("./.env")
@@ -44,23 +51,28 @@ func Load() Config {
 	}
 	cfg = Config{
 		DB: DB{
-			Host: env.Get("DB_HOST"),
-			Port: env.Get("DB_PORT"),
-			User: env.Get("DB_USER"),
-			Pass: env.Get("DB_PASS"),
-			Name: env.Get("DB_NAME"),
+			Host: os.Getenv("DB_HOST"),
+			Port: os.Getenv("DB_PORT"),
+			User: os.Getenv("DB_USER"),
+			Pass: os.Getenv("DB_PASS"),
+			Name: os.Getenv("DB_NAME"),
 		},
 		API: API{
-			Host: env.Get("API_HOST"),
-			Port: env.Get("API_PORT"),
+			Host: os.Getenv("API_HOST"),
+			Port: os.Getenv("API_PORT"),
 		},
 		Server: Server{
-			Host: env.Get("Server_HOST"),
-			Port: env.Get("Server_PORT"),
+			Host: os.Getenv("SERVER_HOST"),
+			Port: os.Getenv("SERVER_PORT"),
+		},
+		Migration: Migration{
+			Dir:  os.Getenv("MIGRATION_DIR"),
+			DSN:  os.Getenv("MIGRATION_DSN"),
+			Name: os.Getenv("MIGRATION_NAME"),
 		},
 	}
 
-	callApi, err := strconv.ParseBool(env.Get("API_CALL"))
+	callApi, err := strconv.ParseBool(os.Getenv("API_CALL"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,5 +90,6 @@ func Load() Config {
 	cfg.Server.Timeout = timeout
 	cfg.Server.IdleTimeout = idleTimeout
 
+	log.Println(cfg)
 	return cfg
 }
