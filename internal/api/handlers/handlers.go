@@ -47,7 +47,7 @@ func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
 	var song models.Song
 	err := json.NewDecoder(r.Body).Decode(&song)
 	if err != nil {
-		h.Log.Debug("Failed to decode request body", zap.Error(err))
+		h.Log.Error("Failed to decode request body", zap.Error(err))
 		http.Error(w, `{"error":"failed to decode request"}`, http.StatusBadRequest)
 		return
 	}
@@ -60,14 +60,14 @@ func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
 
 		resp, err := http.Get(apiURL)
 		if err != nil || resp.StatusCode != http.StatusOK {
-			h.Log.Debug("Failed to fetch song details from external API", zap.Error(err))
+			h.Log.Error("Failed to fetch song details from external API", zap.Error(err))
 			http.Error(w, `{"error":"failed to fetch song details from external API"}`, http.StatusInternalServerError)
 			return
 		}
 		defer resp.Body.Close()
 
 		if err := json.NewDecoder(resp.Body).Decode(&song); err != nil {
-			h.Log.Debug("Failed to decode API response", zap.Error(err))
+			h.Log.Error("Failed to decode API response", zap.Error(err))
 			http.Error(w, `{"error":"failed to decode API response"}`, http.StatusInternalServerError)
 			return
 		}
@@ -75,7 +75,7 @@ func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
 
 	err = h.Service.AddSong(r.Context(), song)
 	if err != nil {
-		h.Log.Debug("service AddSong", zap.Error(err))
+		h.Log.Error("service AddSong", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -88,7 +88,7 @@ func (h *Handler) AddSong(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		h.Log.Debug("Failed to encode response", zap.Error(err))
+		h.Log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 	}
 }
@@ -116,7 +116,7 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	filtres, err := ValidFiltres(r)
 	if err != nil {
-		h.Log.Debug("Failed to validate filters", zap.Error(err))
+		h.Log.Error("Failed to validate filters", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -124,7 +124,7 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	songs, err := h.Service.GetAll(r.Context(), filtres)
 	if err != nil {
-		h.Log.Debug("service GetAll", zap.Error(err))
+		h.Log.Error("service GetAll", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -133,7 +133,7 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(songs)
 	if err != nil {
-		h.Log.Debug("Failed to encode response", zap.Error(err))
+		h.Log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 		return
 	}
@@ -215,14 +215,14 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&song)
 	if err != nil {
-		h.Log.Debug("Failed to decode request body", zap.Error(err))
+		h.Log.Error("Failed to decode request body", zap.Error(err))
 		http.Error(w, `{"error":"failed to decode request"}`, http.StatusBadRequest)
 		return
 	}
 	// val := chi.URLParam(r, "id")
 	id, err := ValidID(r)
 	if err != nil {
-		h.Log.Debug("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
+		h.Log.Error("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -231,7 +231,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	song.Id = id
 	err = h.Service.Update(r.Context(), song)
 	if err != nil {
-		h.Log.Debug("service Update", zap.Error(err))
+		h.Log.Error("service Update", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -242,7 +242,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		h.Log.Debug("Failed to encode response", zap.Error(err))
+		h.Log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 		return
 	}
@@ -266,7 +266,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	// val := chi.URLParam(r, "id")
 	id, err := ValidID(r)
 	if err != nil {
-		h.Log.Debug("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
+		h.Log.Error("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -275,7 +275,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err = h.Service.Delete(r.Context(), id)
 	if err != nil {
-		h.Log.Debug("service Delete", zap.Error(err))
+		h.Log.Error("service Delete", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -286,7 +286,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		h.Log.Debug("Failed to encode response", zap.Error(err))
+		h.Log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -311,21 +311,21 @@ func (h *Handler) GetText(w http.ResponseWriter, r *http.Request) {
 
 	filters, err := ValidFiltres(r)
 	if err != nil {
-		h.Log.Debug("Failed to validate filters", zap.Error(err))
+		h.Log.Error("Failed to validate filters", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	id, err := ValidID(r)
 	if err != nil {
-		h.Log.Debug("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
+		h.Log.Error("Converion id", zap.Error(fmt.Errorf("failed conversion id into int: %w", err)))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	text, err := h.Service.GetText(r.Context(), filters, id)
 	if err != nil {
-		h.Log.Debug("service GetText", zap.Error(err))
+		h.Log.Error("service GetText", zap.Error(err))
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 	}
 
@@ -334,7 +334,7 @@ func (h *Handler) GetText(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		h.Log.Debug("Failed to encode response", zap.Error(err))
+		h.Log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
 		return
 	}

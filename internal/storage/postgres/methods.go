@@ -23,7 +23,6 @@ func (s *Store) AddSong(ctx context.Context, song models.Song) error {
 
 	row, err := s.DB.ExecContext(ctx, query, song.Song, song.Group, song.Text, song.Link, song.Date)
 	if err != nil {
-		s.Log.Debug("Add song", zap.Error(err))
 		return fmt.Errorf("failed to add song in storage: %w", err)
 	}
 	n, err := row.RowsAffected()
@@ -48,12 +47,14 @@ func (s *Store) Update(ctx context.Context, song models.Song) error {
 	)
 
 	query := `UPDATE songs SET 
+	song = COALESCE(NULLIF($1, ''), song),
+	group_name = COALESCE(NULLIF($1, ''), group_name),
 	text = COALESCE(NULLIF($1, ''), text),
     link = COALESCE(NULLIF($2, ''), link),
     date_release = COALESCE(NULLIF($3, ''), date_release)
 	WHERE id = $4`
 
-	row, err := s.DB.ExecContext(ctx, query, song.Text, song.Link, song.Date, song.Id)
+	row, err := s.DB.ExecContext(ctx, query, song.Song, song.Group, song.Text, song.Link, song.Date, song.Id)
 	if err != nil {
 		return fmt.Errorf("failed to update info about song: %w", err)
 	}
@@ -62,11 +63,9 @@ func (s *Store) Update(ctx context.Context, song models.Song) error {
 		return fmt.Errorf("failed to retrieve rows affected: %w", err)
 	}
 	if n == 0 {
-		s.Log.Debug("No changes made to the song info", zap.Any("song", song))
 		return fmt.Errorf("song not found")
-	} else {
-		s.Log.Debug("Song info successfully updated")
 	}
+	s.Log.Debug("Song info successfully updated")
 	return nil
 }
 
